@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Shield, X } from 'lucide-react';
+import { Menu, Shield, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -13,7 +15,15 @@ const navLinks = [
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Signed out');
+    navigate('/');
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
@@ -42,43 +52,46 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link to="/login">
-            <Button variant="ghost" size="sm">Log in</Button>
-          </Link>
-          <Link to="/signup">
-            <Button size="sm">Sign up</Button>
-          </Link>
+          {user ? (
+            <>
+              <span className="text-sm text-muted-foreground">{profile?.display_name || user.email}</span>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="mr-1 h-4 w-4" /> Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login"><Button variant="ghost" size="sm">Log in</Button></Link>
+              <Link to="/signup"><Button size="sm">Sign up</Button></Link>
+            </>
+          )}
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
+            <Button variant="ghost" size="icon"><Menu className="h-5 w-5" /></Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-72">
             <div className="mt-6 flex flex-col gap-2">
               {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setOpen(false)}
+                <Link key={link.to} to={link.to} onClick={() => setOpen(false)}
                   className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    location.pathname === link.to
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
+                    location.pathname === link.to ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'
+                  }`}>
                   {link.label}
                 </Link>
               ))}
               <div className="mt-4 border-t pt-4">
-                <Link to="/login" onClick={() => setOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">Log in</Button>
-                </Link>
-                <Link to="/signup" onClick={() => setOpen(false)}>
-                  <Button className="mt-2 w-full">Sign up</Button>
-                </Link>
+                {user ? (
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => { setOpen(false); handleSignOut(); }}>
+                    <LogOut className="mr-2 h-4 w-4" /> Sign out
+                  </Button>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setOpen(false)}><Button variant="ghost" className="w-full justify-start">Log in</Button></Link>
+                    <Link to="/signup" onClick={() => setOpen(false)}><Button className="mt-2 w-full">Sign up</Button></Link>
+                  </>
+                )}
               </div>
             </div>
           </SheetContent>

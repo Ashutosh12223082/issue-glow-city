@@ -5,12 +5,31 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockIssues, statsData, weeklyData, categoryDistribution, categoryLabels, categoryIcons, priorityColors, statusColors, statusLabels } from '@/lib/mock-data';
-import { FileText, CheckCircle, Clock, Users, TrendingUp, AlertTriangle } from 'lucide-react';
+import { categoryLabels, categoryIcons, priorityColors, statusColors, statusLabels, weeklyData, categoryDistribution } from '@/lib/mock-data';
+import { FileText, CheckCircle, Clock, Users, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import type { Tables } from '@/integrations/supabase/types';
 
 export default function AdminDashboard() {
+  const { data: issues = [], isLoading } = useQuery({
+    queryKey: ['admin-issues'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('issues')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as Tables<'issues'>[];
+    },
+  });
+
+  const totalIssues = issues.length;
+  const resolvedIssues = issues.filter(i => i.status === 'resolved').length;
+  const inProgressIssues = issues.filter(i => i.status === 'in_progress').length;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -22,10 +41,10 @@ export default function AdminDashboard() {
 
         {/* Stats */}
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard title="Total Issues" value={statsData.totalIssues.toLocaleString()} icon={FileText} trend="12% this week" trendUp />
-          <StatCard title="Resolved" value={statsData.resolvedIssues.toLocaleString()} icon={CheckCircle} trend="8% this week" trendUp />
-          <StatCard title="Avg Response" value={statsData.avgResponseTime} icon={Clock} trend="0.3 days faster" trendUp />
-          <StatCard title="Active Users" value={statsData.activeUsers.toLocaleString()} icon={Users} trend="5% growth" trendUp />
+          <StatCard title="Total Issues" value={totalIssues.toString()} icon={FileText} trend={`${inProgressIssues} active`} trendUp />
+          <StatCard title="Resolved" value={resolvedIssues.toString()} icon={CheckCircle} trend={totalIssues > 0 ? `${Math.round(resolvedIssues / totalIssues * 100)}% rate` : '0%'} trendUp />
+          <StatCard title="In Progress" value={inProgressIssues.toString()} icon={Clock} trend="Being handled" trendUp />
+          <StatCard title="Pending" value={issues.filter(i => ['submitted', 'under_review'].includes(i.status)).length.toString()} icon={Users} trend="Needs attention" trendUp={false} />
         </div>
 
         {/* Charts */}
@@ -48,9 +67,7 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie data={categoryDistribution} cx="50%" cy="50%" outerRadius={90} innerRadius={50} dataKey="value" paddingAngle={2}>
-                  {categoryDistribution.map((entry, i) => (
-                    <Cell key={i} fill={entry.fill} />
-                  ))}
+                  {categoryDistribution.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
@@ -69,68 +86,57 @@ export default function AdminDashboard() {
         {/* Issues Table */}
         <Card className="border border-border shadow-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-border p-4">
-            <h3 className="font-display text-sm font-semibold text-card-foreground">All Complaints</h3>
-            <div className="flex gap-2">
-              <Select defaultValue="all">
-                <SelectTrigger className="h-8 w-32 text-xs">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {Object.entries(categoryLabels).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <h3 className="font-display text-sm font-semibold text-card-foreground">All Complaints ({issues.length})</h3>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Issue</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Priority</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Reported</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockIssues.map((issue) => (
-                  <tr key={issue.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="max-w-[200px]">
-                        <p className="truncate font-medium text-card-foreground">{issue.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{issue.location.address}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1.5 text-xs">
-                        {categoryIcons[issue.category]} {categoryLabels[issue.category]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className={`text-xs capitalize ${priorityColors[issue.priority]}`}>
-                        {issue.priority}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary" className={`text-xs ${statusColors[issue.status]}`}>
-                        {statusLabels[issue.status]}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(issue.reportedAt), { addSuffix: true })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs">Manage</Button>
-                    </td>
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Issue</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Category</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Priority</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Reported</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {issues.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">No complaints yet</td></tr>
+                  ) : issues.map((issue) => (
+                    <tr key={issue.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="max-w-[200px]">
+                          <p className="truncate font-medium text-card-foreground">{issue.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{issue.location_address || 'No location'}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-1.5 text-xs">
+                          {categoryIcons[issue.category]} {categoryLabels[issue.category]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline" className={`text-xs capitalize ${priorityColors[issue.priority]}`}>{issue.priority}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="secondary" className={`text-xs ${statusColors[issue.status]}`}>{statusLabels[issue.status]}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(issue.created_at), { addSuffix: true })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">Manage</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
       <Footer />

@@ -14,7 +14,169 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      issue_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          issue_id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          issue_id: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          issue_id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_feedback_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issue_votes: {
+        Row: {
+          created_at: string
+          id: string
+          issue_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_votes_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issues: {
+        Row: {
+          ai_classification: Json | null
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["issue_category"]
+          created_at: string
+          department: string | null
+          description: string
+          id: string
+          image_url: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          priority: Database["public"]["Enums"]["issue_priority"]
+          status: Database["public"]["Enums"]["issue_status"]
+          title: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          ai_classification?: Json | null
+          assigned_to?: string | null
+          category: Database["public"]["Enums"]["issue_category"]
+          created_at?: string
+          department?: string | null
+          description: string
+          id?: string
+          image_url?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          priority?: Database["public"]["Enums"]["issue_priority"]
+          status?: Database["public"]["Enums"]["issue_status"]
+          title: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          ai_classification?: Json | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["issue_category"]
+          created_at?: string
+          department?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          priority?: Database["public"]["Enums"]["issue_priority"]
+          status?: Database["public"]["Enums"]["issue_status"]
+          title?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +185,22 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      issue_category:
+        | "pothole"
+        | "garbage"
+        | "streetlight"
+        | "water_leak"
+        | "illegal_dumping"
+        | "damaged_infrastructure"
+        | "traffic_signal"
+        | "sewage"
+      issue_priority: "low" | "medium" | "high" | "critical"
+      issue_status:
+        | "submitted"
+        | "under_review"
+        | "assigned"
+        | "in_progress"
+        | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +327,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      issue_category: [
+        "pothole",
+        "garbage",
+        "streetlight",
+        "water_leak",
+        "illegal_dumping",
+        "damaged_infrastructure",
+        "traffic_signal",
+        "sewage",
+      ],
+      issue_priority: ["low", "medium", "high", "critical"],
+      issue_status: [
+        "submitted",
+        "under_review",
+        "assigned",
+        "in_progress",
+        "resolved",
+      ],
+    },
   },
 } as const
